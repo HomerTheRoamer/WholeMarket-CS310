@@ -8,12 +8,12 @@ The application aims to reduce product waste, improve pricing decisions and incr
 
 Core Features
 
--Product and Inventory Management:** Add, edit, and delete products, including prices, costs, stock quantities, and expiration dates.
--Expiration Date Tracking and Filtering:** Identify and filter products approaching expiration.
--Smart Discount Recommendations:** Suggest discounts based on expiration dates, stock levels, and product costs.
--Competitor Price Comparison:** Manually enter and compare competitors' product prices.
--Seasonal Promotion Planner:** Schedule and manage promotional campaigns.
--Dashboard View inventory summaries, expiring products, promotions, and discount suggestions.
+-Product and Inventory Management: Add, edit, and delete products, including prices, costs, stock quantities and expiration dates.
+-Expiration Date Tracking and Filtering: Identify and filter products approaching expiration.
+-Smart Discount Recommendations: Suggest discounts based on expiration dates, stock levels and product costs.
+-Competitor Price Comparison: Manually enter and compare competitors' product prices.
+-Seasonal Promotion Planner: Schedule and manage promotional campaigns.
+-Dashboard: View inventory summaries, expiring products, promotions and discount suggestions.
 
 Optional Features
 
