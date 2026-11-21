@@ -117,3 +117,36 @@ app.*.symbols
 !**/ios/**/default.perspectivev3
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 !/dev/ci/**/Gemfile.lock
+
+# Dart / Flutter
+.dart_tool/
+.packages
+.pub/
+build/
+coverage/
+flutter_*.png
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+
+# Flutter generated files
+.metadata
+**/flutter/ephemeral/
+**/Generated.xcconfig
+**/flutter_export_environment.sh
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Android
+android/local.properties
+android/key.properties
+*.keystore
+*.jks
+
+# iOS
+ios/Pods/
+ios/.symlinks/
