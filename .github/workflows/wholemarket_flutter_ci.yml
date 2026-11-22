@@ -1,0 +1,60 @@
+name: WholeMarket Flutter checks
+
+on:
+  push:
+    branches:
+      - feature/can-auth-ui
+  pull_request:
+    branches:
+      - feature/wholemarket-integration
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  flutter-checks:
+    name: Analyze, test, and build Android debug
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout submitted branch
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter stable (includes Dart)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Print SDK versions
+        run: flutter --version
+
+      - name: Install Dart/Flutter dependencies
+        run: flutter pub get
+
+      - name: Analyze (all errors are fatal)
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Run widget tests
+        run: flutter test --reporter expanded
+
+      # The team's current .gitignore excludes android/gradlew and gradle-wrapper.jar.
+      # Regenerate missing Android wrapper files for this CI build ONLY.
+      # The team should still fix the repository so a fresh clone runs directly.
+      - name: Restore missing Android Gradle wrapper for CI
+        run: |
+          if [ ! -f android/gradlew ]; then
+            echo '::warning::android/gradlew is absent in the repository; generating it for CI.'
+            flutter create --platforms=android --project-name wholemarket .
+          fi
+
+      - name: Compile Android debug APK (no emulator required)
+        run: flutter build apk --debug
