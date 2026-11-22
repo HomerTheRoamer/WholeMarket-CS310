@@ -12,11 +12,19 @@ import '../../models/product.dart';
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onAddProduct;
   final VoidCallback onViewPricing;
+  final VoidCallback onExpiringSoon;
+  final VoidCallback onActiveOffers;
+  final VoidCallback onPriceGaps;
+  final VoidCallback onSuggestions;
 
   const DashboardScreen({
     super.key,
     required this.onAddProduct,
     required this.onViewPricing,
+    required this.onExpiringSoon,
+    required this.onActiveOffers,
+    required this.onPriceGaps,
+    required this.onSuggestions,
   });
 
   @override
@@ -49,7 +57,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final prefs = await SharedPreferences.getInstance();
       final now = DateTime.now();
       final savedPromotions =
-          jsonDecode(prefs.getString('saved_promotions') ?? '[]') as List;
+      jsonDecode(prefs.getString('saved_promotions') ?? '[]') as List;
       final savedObservations = jsonDecode(
         prefs.getString('saved_competitor_observations') ?? '[]',
       ) as List;
@@ -115,7 +123,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         .toList();
 
     attentionProducts.sort(
-      (a, b) => a.expirationDate.compareTo(b.expirationDate),
+          (a, b) => a.expirationDate.compareTo(b.expirationDate),
     );
 
     return Scaffold(
@@ -124,141 +132,145 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
-                onRefresh: _loadProducts,
-                child: ListView(
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    _buildHeader(),
+          onRefresh: _loadProducts,
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              _buildHeader(),
 
-                    const SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-                    const Text(
-                      'Your store at a glance',
-                      style: TextStyle(fontSize: 14, color: Colors.blueGrey),
+              const Text(
+                'Your store at a glance',
+                style: TextStyle(fontSize: 14, color: Colors.blueGrey),
+              ),
+
+              const SizedBox(height: 30),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _summaryCard(
+                      'Expiring soon',
+                      '${expiringSoon.length}',
+                      Icons.access_time,
+                      onTap: widget.onExpiringSoon,
                     ),
-
-                    const SizedBox(height: 30),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _summaryCard(
-                            'Expiring soon',
-                            '${expiringSoon.length}',
-                            Icons.access_time,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _summaryCard(
-                            'Active offers',
-                            '$activeOffers',
-                            Icons.local_offer_outlined,
-                          ),
-                        ),
-                      ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _summaryCard(
+                      'Active offers',
+                      '$activeOffers',
+                      Icons.local_offer_outlined,
+                      onTap: widget.onActiveOffers,
                     ),
+                  ),
+                ],
+              ),
 
-                    const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _summaryCard(
-                            'Price gaps',
-                            '$priceGaps',
-                            Icons.compare_arrows,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _summaryCard(
-                            'Suggestions',
-                            '$suggestions',
-                            Icons.lightbulb_outline,
-                          ),
-                        ),
-                      ],
+              Row(
+                children: [
+                  Expanded(
+                    child: _summaryCard(
+                      'Price gaps',
+                      '$priceGaps',
+                      Icons.compare_arrows,
+                      onTap: widget.onPriceGaps,
                     ),
-
-                    const SizedBox(height: 32),
-
-                    const Text(
-                      'Needs attention',
-                      style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF20343E),
-                      ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _summaryCard(
+                      'Suggestions',
+                      '$suggestions',
+                      Icons.lightbulb_outline,
+                      onTap: widget.onSuggestions,
                     ),
+                  ),
+                ],
+              ),
 
-                    const SizedBox(height: 14),
+              const SizedBox(height: 32),
 
-                    if (attentionProducts.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: _boxDecoration(),
-                        child: const Text(
-                          'No products need attention.',
-                          style: TextStyle(color: Colors.blueGrey),
-                        ),
-                      )
-                    else
-                      ...attentionProducts.map(
-                        (product) => _attentionCard(product),
-                      ),
-
-                    const SizedBox(height: 30),
-
-                    const Text(
-                      'Quick actions',
-                      style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF20343E),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: widget.onAddProduct,
-                            icon: const Icon(Icons.add),
-                            label: const Text('Add product'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryColor,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(width: 10),
-
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: widget.onViewPricing,
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF20343E),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text('View pricing'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+              const Text(
+                'Needs attention',
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF20343E),
                 ),
               ),
+
+              const SizedBox(height: 14),
+
+              if (attentionProducts.isEmpty)
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: _boxDecoration(),
+                  child: const Text(
+                    'No products need attention.',
+                    style: TextStyle(color: Colors.blueGrey),
+                  ),
+                )
+              else
+                ...attentionProducts.map(
+                      (product) => _attentionCard(product),
+                ),
+
+              const SizedBox(height: 30),
+
+              const Text(
+                'Quick actions',
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF20343E),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: widget.onAddProduct,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add product'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 10),
+
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: widget.onViewPricing,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFF20343E),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('View pricing'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -296,36 +308,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _summaryCard(String title, String value, IconData icon) {
-    return Container(
-      height: 115,
-      padding: const EdgeInsets.all(15),
-      decoration: _boxDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
+  Widget _summaryCard(String title, String value, IconData icon, {required VoidCallback onTap}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Ink(
+          height: 115,
+          padding: const EdgeInsets.all(15),
+          decoration: _boxDecoration(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(icon, size: 17, color: primaryColor),
-              const SizedBox(width: 5),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
+              Row(
+                children: [
+                  Icon(icon, size: 17, color: primaryColor),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: primaryColor,
                 ),
               ),
             ],
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: primaryColor,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -375,7 +394,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Expanded(
             child: Text(
               '${product.name} · '
-              '${product.stockQuantity} units',
+                  '${product.stockQuantity} units',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
