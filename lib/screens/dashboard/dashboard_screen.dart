@@ -1,3 +1,8 @@
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../services/discount_service.dart';
 
 import 'package:flutter/material.dart';
 
@@ -7,11 +12,21 @@ import '../../models/product.dart';
 class DashboardScreen extends StatefulWidget {
   final VoidCallback onAddProduct;
   final VoidCallback onViewPricing;
+  final VoidCallback onExpiringSoon;
+  final VoidCallback onActiveOffers;
+  final VoidCallback onPriceGaps;
+  final VoidCallback onSuggestions;
+  final VoidCallback? onProfile;
 
   const DashboardScreen({
     super.key,
     required this.onAddProduct,
     required this.onViewPricing,
+    required this.onExpiringSoon,
+    required this.onActiveOffers,
+    required this.onPriceGaps,
+    required this.onSuggestions,
+    this.onProfile,
   });
 
   @override
@@ -21,6 +36,9 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   List<Product> products = [];
   bool isLoading = true;
+  int activeOffers = 0;
+  int priceGaps = 0;
+  int suggestions = 0;
 
   static const Color primaryColor = Color(0xFF237F75);
 
@@ -36,12 +54,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
 
     try {
-      final savedProducts =
-      await DatabaseHelper.instance.getProducts();
+      final savedProducts = await DatabaseHelper.instance.getProducts();
 
+      final prefs = await SharedPreferences.getInstance();
+      final now = DateTime.now();
+      final savedPromotions =
+      jsonDecode(prefs.getString('saved_promotions') ?? '[]') as List;
+      final savedObservations = jsonDecode(
+        prefs.getString('saved_competitor_observations') ?? '[]',
+      ) as List;
+      final active = savedPromotions.where((entry) {
+        final promotion = entry as Map;
+        final start = DateTime.parse(promotion['startDate'] as String);
+        final end = DateTime.parse(promotion['endDate'] as String);
+        final today = DateTime(now.year, now.month, now.day);
+        return !today.isBefore(DateTime(start.year, start.month, start.day)) &&
+            !today.isAfter(DateTime(end.year, end.month, end.day));
+      }).length;
+      final byId = {for (final product in savedProducts) product.id: product};
+      final gaps = savedObservations.where((entry) {
+        final observation = entry as Map;
+        final product = byId[observation['productId']];
+        if (product == null) return false;
+        final price = (observation['price'] as num).toDouble();
+        return price < product.sellingPrice;
+      }).length;
+      final recommended = savedProducts.where((product) {
+        if (product.isExpired) return false;
+        final discount = DiscountService.recommendedDiscount(
+          daysLeft: product.daysUntilExpiry,
+          peakSeason: product.season,
+          today: now,
+        );
+        return discount > 0 &&
+            DiscountService.isAboveCost(
+              product.sellingPrice,
+              product.unitCost,
+              discount,
+            );
+      }).length;
       if (!mounted) return;
 
       setState(() {
+        activeOffers = active;
+        priceGaps = gaps;
+        suggestions = recommended;
         products = savedProducts;
         isLoading = false;
       });
@@ -52,9 +109,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         isLoading = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Database error: $e')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Database error: $e')));
     }
   }
 
@@ -65,24 +121,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
         .toList();
 
     final attentionProducts = products
-        .where(
-          (product) =>
-      product.isExpired || product.isExpiringSoon,
-    )
+        .where((product) => product.isExpired || product.isExpiringSoon)
         .toList();
 
     attentionProducts.sort(
-          (a, b) =>
-          a.expirationDate.compareTo(b.expirationDate),
+          (a, b) => a.expirationDate.compareTo(b.expirationDate),
     );
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAF9),
       body: SafeArea(
         child: isLoading
-            ? const Center(
-          child: CircularProgressIndicator(),
-        )
+            ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
           onRefresh: _loadProducts,
           child: ListView(
@@ -94,10 +144,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               const Text(
                 'Your store at a glance',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.blueGrey,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.blueGrey),
               ),
 
               const SizedBox(height: 30),
@@ -109,14 +156,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       'Expiring soon',
                       '${expiringSoon.length}',
                       Icons.access_time,
+                      onTap: widget.onExpiringSoon,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _summaryCard(
                       'Active offers',
-                      '—',
+                      '$activeOffers',
                       Icons.local_offer_outlined,
+                      onTap: widget.onActiveOffers,
                     ),
                   ),
                 ],
@@ -129,16 +178,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Expanded(
                     child: _summaryCard(
                       'Price gaps',
-                      '—',
+                      '$priceGaps',
                       Icons.compare_arrows,
+                      onTap: widget.onPriceGaps,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _summaryCard(
                       'Suggestions',
-                      '—',
+                      '$suggestions',
                       Icons.lightbulb_outline,
+                      onTap: widget.onSuggestions,
                     ),
                   ),
                 ],
@@ -163,15 +214,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   decoration: _boxDecoration(),
                   child: const Text(
                     'No products need attention.',
-                    style: TextStyle(
-                      color: Colors.blueGrey,
-                    ),
+                    style: TextStyle(color: Colors.blueGrey),
                   ),
                 )
               else
                 ...attentionProducts.map(
-                      (product) =>
-                      _attentionCard(product),
+                      (product) => _attentionCard(product),
                 ),
 
               const SizedBox(height: 30),
@@ -197,13 +245,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: primaryColor,
                         foregroundColor: Colors.white,
-                        padding:
-                        const EdgeInsets.symmetric(
-                          vertical: 16,
-                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
@@ -215,15 +259,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: OutlinedButton(
                       onPressed: widget.onViewPricing,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor:
-                        const Color(0xFF20343E),
-                        padding:
-                        const EdgeInsets.symmetric(
-                          vertical: 16,
-                        ),
+                        foregroundColor: const Color(0xFF20343E),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: const Text('View pricing'),
@@ -253,20 +292,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         TextButton.icon(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Profile screen is coming soon',
-                ),
-              ),
-            );
-          },
+          onPressed: widget.onProfile,
           icon: const Icon(Icons.settings_outlined),
           label: const Text('Profile'),
-          style: TextButton.styleFrom(
-            foregroundColor: primaryColor,
-          ),
+          style: TextButton.styleFrom(foregroundColor: primaryColor),
         ),
         IconButton(
           tooltip: 'Refresh',
@@ -277,47 +306,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _summaryCard(
-      String title,
-      String value,
-      IconData icon,
-      ) {
-    return Container(
-      height: 115,
-      padding: const EdgeInsets.all(15),
-      decoration: _boxDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
+  Widget _summaryCard(String title, String value, IconData icon, {required VoidCallback onTap}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Ink(
+          height: 115,
+          padding: const EdgeInsets.all(15),
+          decoration: _boxDecoration(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Icon(
-                icon,
-                size: 17,
-                color: primaryColor,
-              ),
-              const SizedBox(width: 5),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.blueGrey,
+              Row(
+                children: [
+                  Icon(icon, size: 17, color: primaryColor),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
+                    ),
                   ),
+                ],
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: primaryColor,
                 ),
               ),
             ],
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: primaryColor,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -345,10 +370,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 8,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               color: expired
                   ? const Color(0xFFFDEBEC)
@@ -360,9 +382,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: expired
-                    ? Colors.red
-                    : const Color(0xFFBA7800),
+                color: expired ? Colors.red : const Color(0xFFBA7800),
               ),
             ),
           ),
@@ -391,9 +411,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(
-        color: const Color(0xFFD9E4E8),
-      ),
+      border: Border.all(color: const Color(0xFFD9E4E8)),
     );
   }
 }

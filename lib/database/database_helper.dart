@@ -1,4 +1,3 @@
-
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -69,20 +68,13 @@ class DatabaseHelper {
   Future<void> deleteProduct(String id) async {
     final db = await database;
 
-    await db.delete(
-      'products',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    await db.delete('products', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<List<Product>> getProducts() async {
     final db = await database;
 
-    final rows = await db.query(
-      'products',
-      orderBy: 'name ASC',
-    );
+    final rows = await db.query('products', orderBy: 'name ASC');
 
     return rows.map((row) {
       return Product(
@@ -92,9 +84,7 @@ class DatabaseHelper {
         sellingPrice: (row['selling_price'] as num).toDouble(),
         unitCost: (row['unit_cost'] as num).toDouble(),
         stockQuantity: row['stock_quantity'] as int,
-        expirationDate: DateTime.parse(
-          row['expiration_date'] as String,
-        ),
+        expirationDate: DateTime.parse(row['expiration_date'] as String),
         season: row['season'] as String,
       );
     }).toList();
@@ -106,11 +96,9 @@ class DatabaseHelper {
 
     if (category.isEmpty) return;
 
-    await db.insert(
-      'categories',
-      {'name': category},
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
+    await db.insert('categories', {
+      'name': category,
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   Future<List<String>> getCategories() async {
@@ -121,9 +109,7 @@ class DatabaseHelper {
       orderBy: 'name COLLATE NOCASE ASC',
     );
 
-    return rows
-        .map((row) => row['name'] as String)
-        .toList();
+    return rows.map((row) => row['name'] as String).toList();
   }
 
   Map<String, Object?> _productToMap(Product product) {
@@ -134,8 +120,7 @@ class DatabaseHelper {
       'selling_price': product.sellingPrice,
       'unit_cost': product.unitCost,
       'stock_quantity': product.stockQuantity,
-      'expiration_date':
-          product.expirationDate.toIso8601String(),
+      'expiration_date': product.expirationDate.toIso8601String(),
       'season': product.season,
     };
   }

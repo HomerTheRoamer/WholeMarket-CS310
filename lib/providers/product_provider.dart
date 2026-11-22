@@ -1,4 +1,3 @@
-
 import '../models/product.dart';
 
 class ProductProvider {
