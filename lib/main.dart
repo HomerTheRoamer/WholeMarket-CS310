@@ -1,7 +1,9 @@
-
 import 'package:flutter/material.dart';
 
 import 'models/product.dart';
+import 'database/database_helper.dart';
+import 'screens/pricing/discount_recommendations_screen.dart';
+import 'screens/promotions/promotion_planner_screen.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/inventory/inventory_screen.dart';
 
@@ -19,9 +21,7 @@ class WholeMarketApp extends StatelessWidget {
       title: 'WholeMarket',
       theme: ThemeData(
         scaffoldBackgroundColor: Colors.white,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF237F75),
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF237F75)),
         useMaterial3: true,
       ),
       home: const HomeScreen(),
@@ -39,16 +39,35 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int selectedIndex = 0;
   int dashboardVersion = 0;
+  int dataVersion = 0;
 
   final List<Product> products = [];
 
-  void _changeTab(int index) {
+  Future<void> _changeTab(int index) async {
+    // Inventory persists its changes to SQLite. Refresh the shared list
+    // before showing pricing or promotions, so all tabs see the same data.
+    if (index == 2 || index == 3) {
+      try {
+        final latest = await DatabaseHelper.instance.getProducts();
+        if (!mounted) return;
+        setState(() {
+          products
+            ..clear()
+            ..addAll(latest);
+          dataVersion++;
+          selectedIndex = index;
+        });
+      } catch (error) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not load products: $error')),
+        );
+      }
+      return;
+    }
     setState(() {
       selectedIndex = index;
-
-      if (index == 0) {
-        dashboardVersion++;
-      }
+      if (index == 0) dashboardVersion++;
     });
   }
 
@@ -64,24 +83,16 @@ class _HomeScreenState extends State<HomeScreen> {
             onViewPricing: () => _changeTab(2),
           ),
 
-          InventoryScreen(
+          InventoryScreen(products: products),
+
+          DiscountRecommendationsScreen(
+            key: ValueKey('pricing-$dataVersion'),
             products: products,
           ),
 
-          const _ComingSoonScreen(
-            title: 'Pricing',
-            icon: Icons.sell_outlined,
-            description:
-            'Competitor price tracking and smart '
-                'discount suggestions will appear here.',
-          ),
-
-          const _ComingSoonScreen(
-            title: 'Promos',
-            icon: Icons.calendar_month_outlined,
-            description:
-            'Seasonal promotions and campaign '
-                'planning will appear here.',
+          PromotionPlannerScreen(
+            key: ValueKey('promos-$dataVersion'),
+            products: products,
           ),
         ],
       ),
@@ -89,8 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: _changeTab,
-        labelBehavior:
-        NavigationDestinationLabelBehavior.alwaysShow,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
@@ -113,59 +123,6 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Promos',
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ComingSoonScreen extends StatelessWidget {
-  final String title;
-  final IconData icon;
-  final String description;
-
-  const _ComingSoonScreen({
-    required this.title,
-    required this.icon,
-    required this.description,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(title),
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(25),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 70,
-                color: const Color(0xFF237F75),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                description,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.blueGrey,
-                  fontSize: 15,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

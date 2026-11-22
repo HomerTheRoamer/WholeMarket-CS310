@@ -1,3 +1,8 @@
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../services/discount_service.dart';
 
 import 'package:flutter/material.dart';
 
@@ -21,6 +26,9 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   List<Product> products = [];
   bool isLoading = true;
+  int activeOffers = 0;
+  int priceGaps = 0;
+  int suggestions = 0;
 
   static const Color primaryColor = Color(0xFF237F75);
 
@@ -36,12 +44,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
 
     try {
-      final savedProducts =
-      await DatabaseHelper.instance.getProducts();
+      final savedProducts = await DatabaseHelper.instance.getProducts();
 
+      final prefs = await SharedPreferences.getInstance();
+      final now = DateTime.now();
+      final savedPromotions =
+          jsonDecode(prefs.getString('saved_promotions') ?? '[]') as List;
+      final savedObservations = jsonDecode(
+        prefs.getString('saved_competitor_observations') ?? '[]',
+      ) as List;
+      final active = savedPromotions.where((entry) {
+        final promotion = entry as Map;
+        final start = DateTime.parse(promotion['startDate'] as String);
+        final end = DateTime.parse(promotion['endDate'] as String);
+        final today = DateTime(now.year, now.month, now.day);
+        return !today.isBefore(DateTime(start.year, start.month, start.day)) &&
+            !today.isAfter(DateTime(end.year, end.month, end.day));
+      }).length;
+      final byId = {for (final product in savedProducts) product.id: product};
+      final gaps = savedObservations.where((entry) {
+        final observation = entry as Map;
+        final product = byId[observation['productId']];
+        if (product == null) return false;
+        final price = (observation['price'] as num).toDouble();
+        return price < product.sellingPrice;
+      }).length;
+      final recommended = savedProducts.where((product) {
+        if (product.isExpired) return false;
+        final discount = DiscountService.recommendedDiscount(
+          daysLeft: product.daysUntilExpiry,
+          peakSeason: product.season,
+          today: now,
+        );
+        return discount > 0 &&
+            DiscountService.isAboveCost(
+              product.sellingPrice,
+              product.unitCost,
+              discount,
+            );
+      }).length;
       if (!mounted) return;
 
       setState(() {
+        activeOffers = active;
+        priceGaps = gaps;
+        suggestions = recommended;
         products = savedProducts;
         isLoading = false;
       });
@@ -52,9 +99,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         isLoading = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Database error: $e')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Database error: $e')));
     }
   }
 
@@ -65,175 +111,154 @@ class _DashboardScreenState extends State<DashboardScreen> {
         .toList();
 
     final attentionProducts = products
-        .where(
-          (product) =>
-      product.isExpired || product.isExpiringSoon,
-    )
+        .where((product) => product.isExpired || product.isExpiringSoon)
         .toList();
 
     attentionProducts.sort(
-          (a, b) =>
-          a.expirationDate.compareTo(b.expirationDate),
+      (a, b) => a.expirationDate.compareTo(b.expirationDate),
     );
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAF9),
       body: SafeArea(
         child: isLoading
-            ? const Center(
-          child: CircularProgressIndicator(),
-        )
+            ? const Center(child: CircularProgressIndicator())
             : RefreshIndicator(
-          onRefresh: _loadProducts,
-          child: ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              _buildHeader(),
-
-              const SizedBox(height: 8),
-
-              const Text(
-                'Your store at a glance',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.blueGrey,
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: _summaryCard(
-                      'Expiring soon',
-                      '${expiringSoon.length}',
-                      Icons.access_time,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _summaryCard(
-                      'Active offers',
-                      '—',
-                      Icons.local_offer_outlined,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: _summaryCard(
-                      'Price gaps',
-                      '—',
-                      Icons.compare_arrows,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _summaryCard(
-                      'Suggestions',
-                      '—',
-                      Icons.lightbulb_outline,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 32),
-
-              const Text(
-                'Needs attention',
-                style: TextStyle(
-                  fontSize: 19,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF20343E),
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              if (attentionProducts.isEmpty)
-                Container(
+                onRefresh: _loadProducts,
+                child: ListView(
                   padding: const EdgeInsets.all(20),
-                  decoration: _boxDecoration(),
-                  child: const Text(
-                    'No products need attention.',
-                    style: TextStyle(
-                      color: Colors.blueGrey,
+                  children: [
+                    _buildHeader(),
+
+                    const SizedBox(height: 8),
+
+                    const Text(
+                      'Your store at a glance',
+                      style: TextStyle(fontSize: 14, color: Colors.blueGrey),
                     ),
-                  ),
-                )
-              else
-                ...attentionProducts.map(
-                      (product) =>
-                      _attentionCard(product),
-                ),
 
-              const SizedBox(height: 30),
+                    const SizedBox(height: 30),
 
-              const Text(
-                'Quick actions',
-                style: TextStyle(
-                  fontSize: 19,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF20343E),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: widget.onAddProduct,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add product'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        foregroundColor: Colors.white,
-                        padding:
-                        const EdgeInsets.symmetric(
-                          vertical: 16,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _summaryCard(
+                            'Expiring soon',
+                            '${expiringSoon.length}',
+                            Icons.access_time,
+                          ),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius.circular(12),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _summaryCard(
+                            'Active offers',
+                            '$activeOffers',
+                            Icons.local_offer_outlined,
+                          ),
                         ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _summaryCard(
+                            'Price gaps',
+                            '$priceGaps',
+                            Icons.compare_arrows,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _summaryCard(
+                            'Suggestions',
+                            '$suggestions',
+                            Icons.lightbulb_outline,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    const Text(
+                      'Needs attention',
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF20343E),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(width: 10),
+                    const SizedBox(height: 14),
 
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: widget.onViewPricing,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor:
-                        const Color(0xFF20343E),
-                        padding:
-                        const EdgeInsets.symmetric(
-                          vertical: 16,
+                    if (attentionProducts.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: _boxDecoration(),
+                        child: const Text(
+                          'No products need attention.',
+                          style: TextStyle(color: Colors.blueGrey),
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius:
-                          BorderRadius.circular(12),
-                        ),
+                      )
+                    else
+                      ...attentionProducts.map(
+                        (product) => _attentionCard(product),
                       ),
-                      child: const Text('View pricing'),
+
+                    const SizedBox(height: 30),
+
+                    const Text(
+                      'Quick actions',
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF20343E),
+                      ),
                     ),
-                  ),
-                ],
+
+                    const SizedBox(height: 16),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: widget.onAddProduct,
+                            icon: const Icon(Icons.add),
+                            label: const Text('Add product'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryColor,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 10),
+
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: widget.onViewPricing,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF20343E),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text('View pricing'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -255,18 +280,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         TextButton.icon(
           onPressed: () {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Profile screen is coming soon',
-                ),
-              ),
+              const SnackBar(content: Text('Profile screen is coming soon')),
             );
           },
           icon: const Icon(Icons.settings_outlined),
           label: const Text('Profile'),
-          style: TextButton.styleFrom(
-            foregroundColor: primaryColor,
-          ),
+          style: TextButton.styleFrom(foregroundColor: primaryColor),
         ),
         IconButton(
           tooltip: 'Refresh',
@@ -277,11 +296,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _summaryCard(
-      String title,
-      String value,
-      IconData icon,
-      ) {
+  Widget _summaryCard(String title, String value, IconData icon) {
     return Container(
       height: 115,
       padding: const EdgeInsets.all(15),
@@ -292,19 +307,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Row(
             children: [
-              Icon(
-                icon,
-                size: 17,
-                color: primaryColor,
-              ),
+              Icon(icon, size: 17, color: primaryColor),
               const SizedBox(width: 5),
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.blueGrey,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
                 ),
               ),
             ],
@@ -345,10 +353,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 10,
-              vertical: 8,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
               color: expired
                   ? const Color(0xFFFDEBEC)
@@ -360,9 +365,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: expired
-                    ? Colors.red
-                    : const Color(0xFFBA7800),
+                color: expired ? Colors.red : const Color(0xFFBA7800),
               ),
             ),
           ),
@@ -372,7 +375,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Expanded(
             child: Text(
               '${product.name} · '
-                  '${product.stockQuantity} units',
+              '${product.stockQuantity} units',
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
@@ -391,9 +394,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(14),
-      border: Border.all(
-        color: const Color(0xFFD9E4E8),
-      ),
+      border: Border.all(color: const Color(0xFFD9E4E8)),
     );
   }
 }

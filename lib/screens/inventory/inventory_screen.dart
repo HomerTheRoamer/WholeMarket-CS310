@@ -6,10 +6,7 @@ import '../../database/database_helper.dart';
 class InventoryScreen extends StatefulWidget {
   final List<Product> products;
 
-  const InventoryScreen({
-    super.key,
-    required this.products,
-  });
+  const InventoryScreen({super.key, required this.products});
 
   @override
   State<InventoryScreen> createState() => _InventoryScreenState();
@@ -43,17 +40,15 @@ class _InventoryScreenState extends State<InventoryScreen> {
   void _showError(String message) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _addCategoryToList(String name) {
     if (name.trim().isEmpty) return;
 
     final exists = categories.any(
-          (category) =>
-      category.toLowerCase() == name.toLowerCase(),
+      (category) => category.toLowerCase() == name.toLowerCase(),
     );
 
     if (!exists) {
@@ -63,11 +58,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   Future<void> _loadData() async {
     try {
-      final savedProducts =
-      await DatabaseHelper.instance.getProducts();
+      final savedProducts = await DatabaseHelper.instance.getProducts();
 
-      final savedCategories =
-      await DatabaseHelper.instance.getCategories();
+      final savedCategories = await DatabaseHelper.instance.getCategories();
 
       if (!mounted) return;
 
@@ -100,10 +93,8 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Future<void> _openProductForm([Product? existing]) async {
     final result = await showDialog<Product>(
       context: context,
-      builder: (context) => _ProductFormDialog(
-        product: existing,
-        categories: categories,
-      ),
+      builder: (context) =>
+          _ProductFormDialog(product: existing, categories: categories),
     );
 
     if (!mounted || result == null) return;
@@ -119,9 +110,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Product saved successfully'),
-        ),
+        const SnackBar(content: Text('Product saved successfully')),
       );
     } catch (e) {
       _showError('Failed to save product: $e');
@@ -134,9 +123,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Delete Product'),
-          content: Text(
-            'Are you sure you want to delete ${product.name}?',
-          ),
+          content: Text('Are you sure you want to delete ${product.name}?'),
           actions: [
             TextButton(
               onPressed: () {
@@ -165,9 +152,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Product deleted successfully'),
-        ),
+        const SnackBar(content: Text('Product deleted successfully')),
       );
     } catch (e) {
       _showError('Failed to delete product: $e');
@@ -194,10 +179,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   'Unit Cost',
                   '${product.unitCost.toStringAsFixed(2)} TL',
                 ),
-                _detailRow(
-                  'Stock Quantity',
-                  '${product.stockQuantity} units',
-                ),
+                _detailRow('Stock Quantity', '${product.stockQuantity} units'),
                 _detailRow(
                   'Expiration Date',
                   _formatDate(product.expirationDate),
@@ -277,11 +259,12 @@ class _InventoryScreenState extends State<InventoryScreen> {
   @override
   Widget build(BuildContext context) {
     final filteredProducts = widget.products.where((product) {
-      final matchesSearch = product.name
-          .toLowerCase()
-          .contains(searchText.toLowerCase());
+      final matchesSearch = product.name.toLowerCase().contains(
+        searchText.toLowerCase(),
+      );
 
-      final matchesExpiry = expiryFilter == 0 ||
+      final matchesExpiry =
+          expiryFilter == 0 ||
           (expiryFilter == 1 && _isExpiringSoon(product)) ||
           (expiryFilter == 2 && _isExpired(product));
 
@@ -289,169 +272,164 @@ class _InventoryScreenState extends State<InventoryScreen> {
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Inventory'),
-      ),
+      appBar: AppBar(title: const Text('Inventory')),
       body: isLoading
-          ? const Center(
-        child: CircularProgressIndicator(),
-      )
+          ? const Center(child: CircularProgressIndicator())
           : Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Manage products and shelf life'),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Manage products and shelf life'),
 
-            const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton.icon(
-                onPressed: () => _openProductForm(),
-                icon: const Icon(Icons.add),
-                label: const Text('Add'),
-              ),
-            ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _openProductForm(),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add'),
+                    ),
+                  ),
 
-            const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-            TextField(
-              decoration: const InputDecoration(
-                hintText: 'Search products',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  searchText = value;
-                });
-              },
-            ),
+                  TextField(
+                    decoration: const InputDecoration(
+                      hintText: 'Search products',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        searchText = value;
+                      });
+                    },
+                  ),
 
-            const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-            Wrap(
-              spacing: 8,
-              children: [
-                ChoiceChip(
-                  label: const Text('All'),
-                  selected: expiryFilter == 0,
-                  onSelected: (_) {
-                    setState(() {
-                      expiryFilter = 0;
-                    });
-                  },
-                ),
-                ChoiceChip(
-                  label: const Text('Next 7 days'),
-                  selected: expiryFilter == 1,
-                  onSelected: (_) {
-                    setState(() {
-                      expiryFilter = 1;
-                    });
-                  },
-                ),
-                ChoiceChip(
-                  label: const Text('Expired'),
-                  selected: expiryFilter == 2,
-                  onSelected: (_) {
-                    setState(() {
-                      expiryFilter = 2;
-                    });
-                  },
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            Text('${filteredProducts.length} products'),
-
-            const SizedBox(height: 12),
-
-            Expanded(
-              child: filteredProducts.isEmpty
-                  ? const Center(
-                child: Text('No products found'),
-              )
-                  : ListView.builder(
-                itemCount: filteredProducts.length,
-                itemBuilder: (context, index) {
-                  final product =
-                  filteredProducts[index];
-
-                  return Card(
-                    child: ListTile(
-                      onTap: () {
-                        _showProductDetails(product);
-                      },
-                      leading: const Icon(
-                        Icons.inventory_2_outlined,
-                      ),
-                      title: Text(product.name),
-                      subtitle: Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${product.category} · '
-                                '${product.stockQuantity} units · '
-                                '${product.sellingPrice.toStringAsFixed(2)} TL',
-                          ),
-                          const SizedBox(height: 5),
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 9,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _isExpired(product)
-                                        ? Colors.red.shade50
-                                        : _isExpiringSoon(product)
-                                        ? Colors.orange.shade50
-                                        : Colors.green.shade50,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    _isExpired(product)
-                                        ? 'Expired'
-                                        : _isExpiringSoon(product)
-                                        ? 'Expiring Soon (${_daysUntilExpiry(product.expirationDate)} days)'
-                                        : 'Fresh (${_daysUntilExpiry(product.expirationDate)} days)',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: _isExpired(product)
-                                          ? Colors.red.shade800
-                                          : _isExpiringSoon(product)
-                                          ? Colors.orange.shade900
-                                          : Colors.green.shade800,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          _deleteProduct(product);
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('All'),
+                        selected: expiryFilter == 0,
+                        onSelected: (_) {
+                          setState(() {
+                            expiryFilter = 0;
+                          });
                         },
                       ),
-                    ),
-                  );
-                },
+                      ChoiceChip(
+                        label: const Text('Next 7 days'),
+                        selected: expiryFilter == 1,
+                        onSelected: (_) {
+                          setState(() {
+                            expiryFilter = 1;
+                          });
+                        },
+                      ),
+                      ChoiceChip(
+                        label: const Text('Expired'),
+                        selected: expiryFilter == 2,
+                        onSelected: (_) {
+                          setState(() {
+                            expiryFilter = 2;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  Text('${filteredProducts.length} products'),
+
+                  const SizedBox(height: 12),
+
+                  Expanded(
+                    child: filteredProducts.isEmpty
+                        ? const Center(child: Text('No products found'))
+                        : ListView.builder(
+                            itemCount: filteredProducts.length,
+                            itemBuilder: (context, index) {
+                              final product = filteredProducts[index];
+
+                              return Card(
+                                child: ListTile(
+                                  onTap: () {
+                                    _showProductDetails(product);
+                                  },
+                                  leading: const Icon(
+                                    Icons.inventory_2_outlined,
+                                  ),
+                                  title: Text(product.name),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${product.category} · '
+                                        '${product.stockQuantity} units · '
+                                        '${product.sellingPrice.toStringAsFixed(2)} TL',
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Row(
+                                        children: [
+                                          Flexible(
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 9,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: _isExpired(product)
+                                                    ? Colors.red.shade50
+                                                    : _isExpiringSoon(product)
+                                                    ? Colors.orange.shade50
+                                                    : Colors.green.shade50,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                _isExpired(product)
+                                                    ? 'Expired'
+                                                    : _isExpiringSoon(product)
+                                                    ? 'Expiring Soon (${_daysUntilExpiry(product.expirationDate)} days)'
+                                                    : 'Fresh (${_daysUntilExpiry(product.expirationDate)} days)',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: _isExpired(product)
+                                                      ? Colors.red.shade800
+                                                      : _isExpiringSoon(product)
+                                                      ? Colors.orange.shade900
+                                                      : Colors.green.shade800,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  trailing: IconButton(
+                                    icon: const Icon(Icons.close),
+                                    onPressed: () {
+                                      _deleteProduct(product);
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -464,18 +442,13 @@ class _ProductFormDialog extends StatefulWidget {
   final Product? product;
   final List<String> categories;
 
-  const _ProductFormDialog({
-    this.product,
-    required this.categories,
-  });
+  const _ProductFormDialog({this.product, required this.categories});
 
   @override
-  State<_ProductFormDialog> createState() =>
-      _ProductFormDialogState();
+  State<_ProductFormDialog> createState() => _ProductFormDialogState();
 }
 
-class _ProductFormDialogState
-    extends State<_ProductFormDialog> {
+class _ProductFormDialogState extends State<_ProductFormDialog> {
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController nameController;
@@ -495,9 +468,7 @@ class _ProductFormDialogState
 
     final product = widget.product;
 
-    nameController = TextEditingController(
-      text: product?.name ?? '',
-    );
+    nameController = TextEditingController(text: product?.name ?? '');
 
     priceController = TextEditingController(
       text: product?.sellingPrice.toString() ?? '',
@@ -515,10 +486,8 @@ class _ProductFormDialogState
 
     selectedSeason = product?.season ?? 'All Year';
 
-    selectedDate = product?.expirationDate ??
-        DateTime.now().add(
-          const Duration(days: 30),
-        );
+    selectedDate =
+        product?.expirationDate ?? DateTime.now().add(const Duration(days: 30));
   }
 
   @override
@@ -543,8 +512,7 @@ class _ProductFormDialogState
     if (name.isEmpty) return;
 
     final existingCategories = widget.categories.where(
-          (category) =>
-      category.toLowerCase() == name.toLowerCase(),
+      (category) => category.toLowerCase() == name.toLowerCase(),
     );
 
     final categoryName = existingCategories.isNotEmpty
@@ -552,9 +520,7 @@ class _ProductFormDialogState
         : name;
 
     try {
-      await DatabaseHelper.instance.insertCategory(
-        categoryName,
-      );
+      await DatabaseHelper.instance.insertCategory(categoryName);
 
       if (!mounted) return;
 
@@ -568,11 +534,8 @@ class _ProductFormDialogState
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to add category: $e'),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed to add category: $e')));
     }
   }
 
@@ -592,13 +555,9 @@ class _ProductFormDialogState
   }
 
   String? _validatePrice(String? value) {
-    final number = double.tryParse(
-      (value ?? '').trim().replaceAll(',', '.'),
-    );
+    final number = double.tryParse((value ?? '').trim().replaceAll(',', '.'));
 
-    if (number == null ||
-        !number.isFinite ||
-        number < 0) {
+    if (number == null || !number.isFinite || number < 0) {
       return 'Enter a valid amount';
     }
 
@@ -611,19 +570,16 @@ class _ProductFormDialogState
     }
 
     final product = Product(
-      id: widget.product?.id ??
+      id:
+          widget.product?.id ??
           DateTime.now().microsecondsSinceEpoch.toString(),
       name: nameController.text.trim(),
       category: selectedCategory!,
       sellingPrice: double.parse(
         priceController.text.trim().replaceAll(',', '.'),
       ),
-      unitCost: double.parse(
-        costController.text.trim().replaceAll(',', '.'),
-      ),
-      stockQuantity: int.parse(
-        stockController.text.trim(),
-      ),
+      unitCost: double.parse(costController.text.trim().replaceAll(',', '.')),
+      stockQuantity: int.parse(stockController.text.trim()),
       expirationDate: selectedDate,
       season: selectedSeason,
     );
@@ -634,11 +590,7 @@ class _ProductFormDialogState
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(
-        widget.product == null
-            ? 'Add Product'
-            : 'Edit Product',
-      ),
+      title: Text(widget.product == null ? 'Add Product' : 'Edit Product'),
       content: SizedBox(
         width: 400,
         child: Form(
@@ -649,12 +601,9 @@ class _ProductFormDialogState
               children: [
                 TextFormField(
                   controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Product Name',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Product Name'),
                   validator: (value) {
-                    if (value == null ||
-                        value.trim().isEmpty) {
+                    if (value == null || value.trim().isEmpty) {
                       return 'Enter product name';
                     }
                     return null;
@@ -673,14 +622,12 @@ class _ProductFormDialogState
                   ),
                   hint: const Text('Select Category'),
                   items: [
-                    ...widget.categories.map(
-                          (category) {
-                        return DropdownMenuItem<String>(
-                          value: category,
-                          child: Text(category),
-                        );
-                      },
-                    ),
+                    ...widget.categories.map((category) {
+                      return DropdownMenuItem<String>(
+                        value: category,
+                        child: Text(category),
+                      );
+                    }),
                     const DropdownMenuItem<String>(
                       value: addCategoryValue,
                       child: Row(
@@ -703,8 +650,7 @@ class _ProductFormDialogState
                     }
                   },
                   validator: (_) {
-                    if (selectedCategory == null ||
-                        selectedCategory!.isEmpty) {
+                    if (selectedCategory == null || selectedCategory!.isEmpty) {
                       return 'Select a category';
                     }
                     return null;
@@ -718,8 +664,7 @@ class _ProductFormDialogState
                   decoration: const InputDecoration(
                     labelText: 'Selling Price (TL)',
                   ),
-                  keyboardType:
-                  const TextInputType.numberWithOptions(
+                  keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
                   validator: _validatePrice,
@@ -730,8 +675,7 @@ class _ProductFormDialogState
                   decoration: const InputDecoration(
                     labelText: 'Unit Cost (TL)',
                   ),
-                  keyboardType:
-                  const TextInputType.numberWithOptions(
+                  keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
                   validator: _validatePrice,
@@ -744,9 +688,7 @@ class _ProductFormDialogState
                   ),
                   keyboardType: TextInputType.number,
                   validator: (value) {
-                    final quantity = int.tryParse(
-                      (value ?? '').trim(),
-                    );
+                    final quantity = int.tryParse((value ?? '').trim());
 
                     if (quantity == null || quantity < 0) {
                       return 'Enter a valid quantity';
@@ -762,8 +704,8 @@ class _ProductFormDialogState
                   title: const Text('Expiration Date'),
                   subtitle: Text(
                     '${selectedDate.day}/'
-                        '${selectedDate.month}/'
-                        '${selectedDate.year}',
+                    '${selectedDate.month}/'
+                    '${selectedDate.year}',
                   ),
                   trailing: const Icon(Icons.calendar_today),
                   onTap: _selectDate,
@@ -771,21 +713,15 @@ class _ProductFormDialogState
 
                 DropdownButtonFormField<String>(
                   initialValue: selectedSeason,
-                  decoration: const InputDecoration(
-                    labelText: 'Season',
-                  ),
-                  items: [
-                    'All Year',
-                    'Spring',
-                    'Summer',
-                    'Autumn',
-                    'Winter',
-                  ].map((season) {
-                    return DropdownMenuItem<String>(
-                      value: season,
-                      child: Text(season),
-                    );
-                  }).toList(),
+                  decoration: const InputDecoration(labelText: 'Season'),
+                  items: ['All Year', 'Spring', 'Summer', 'Autumn', 'Winter']
+                      .map((season) {
+                        return DropdownMenuItem<String>(
+                          value: season,
+                          child: Text(season),
+                        );
+                      })
+                      .toList(),
                   onChanged: (value) {
                     if (value != null) {
                       setState(() {
@@ -806,10 +742,7 @@ class _ProductFormDialogState
           },
           child: const Text('Cancel'),
         ),
-        ElevatedButton(
-          onPressed: _saveProduct,
-          child: const Text('Save'),
-        ),
+        ElevatedButton(onPressed: _saveProduct, child: const Text('Save')),
       ],
     );
   }
@@ -823,14 +756,11 @@ class _NewCategoryDialog extends StatefulWidget {
   const _NewCategoryDialog();
 
   @override
-  State<_NewCategoryDialog> createState() =>
-      _NewCategoryDialogState();
+  State<_NewCategoryDialog> createState() => _NewCategoryDialogState();
 }
 
-class _NewCategoryDialogState
-    extends State<_NewCategoryDialog> {
-  final TextEditingController controller =
-  TextEditingController();
+class _NewCategoryDialogState extends State<_NewCategoryDialog> {
+  final TextEditingController controller = TextEditingController();
 
   @override
   void dispose() {
@@ -868,10 +798,7 @@ class _NewCategoryDialogState
           },
           child: const Text('Cancel'),
         ),
-        ElevatedButton(
-          onPressed: _submit,
-          child: const Text('Add'),
-        ),
+        ElevatedButton(onPressed: _submit, child: const Text('Add')),
       ],
     );
   }

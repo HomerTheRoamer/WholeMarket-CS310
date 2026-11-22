@@ -1,4 +1,3 @@
-
 class Product {
   final String id;
   final String name;
@@ -32,8 +31,10 @@ class Product {
     return expiry.difference(currentDate).inDays;
   }
 
-  bool get isExpiringSoon =>
-      daysUntilExpiry >= 0 && daysUntilExpiry <= 7;
+  bool get isExpiringSoon => daysUntilExpiry >= 0 && daysUntilExpiry <= 7;
 
   bool get isExpired => daysUntilExpiry < 0;
+  String get peakSeason => season;
+
+  int get daysUntilExpiration => daysUntilExpiry;
 }
