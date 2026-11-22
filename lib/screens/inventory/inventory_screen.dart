@@ -20,8 +20,10 @@ class InventoryScreen extends StatefulWidget {
 
 class _InventoryScreenState extends State<InventoryScreen> {
   String searchText = '';
-  // 0 = All, 1 = Expiring Soon, 2 = Expired
+  // 0 = All, 1 = Next 7 days, 2 = Expired, 3 = Custom, 4 = Next 30 days
   int expiryFilter = 0;
+  DateTime? customStartDate;
+  DateTime? customEndDate;
   bool isLoading = true;
 
   final List<String> categories = [
@@ -55,7 +57,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     if (name.trim().isEmpty) return;
 
     final exists = categories.any(
-          (category) => category.toLowerCase() == name.toLowerCase(),
+      (category) => category.toLowerCase() == name.toLowerCase(),
     );
 
     if (!exists) {
@@ -202,6 +204,165 @@ class _InventoryScreenState extends State<InventoryScreen> {
     return days >= 0 && days <= 7;
   }
 
+  // The wireframe's expiry filter bottom sheet. Dates are inclusive.
+  Future<void> _showExpiryFilters() async {
+    int selected = expiryFilter == 4 || expiryFilter == 3 ? expiryFilter : 1;
+    DateTime? start = customStartDate;
+    DateTime? end = customEndDate;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, updateSheet) {
+          Future<void> pickDate(bool isStart) async {
+            final now = DateUtils.dateOnly(DateTime.now());
+            final picked = await showDatePicker(
+              context: sheetContext,
+              initialDate: (isStart ? start : end) ?? now,
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2100),
+            );
+            if (picked == null || !sheetContext.mounted) return;
+            updateSheet(() {
+              selected = 3;
+              if (isStart) {
+                start = DateUtils.dateOnly(picked);
+              } else {
+                end = DateUtils.dateOnly(picked);
+              }
+            });
+          }
+
+          String dateLabel(DateTime? date) => date == null
+              ? 'Select date'
+              : '${date.day.toString().padLeft(2, '0')}/'
+                    '${date.month.toString().padLeft(2, '0')}/${date.year}';
+
+          final invalidRange =
+              selected == 3 &&
+              (start == null || end == null || start!.isAfter(end!));
+
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                12,
+                20,
+                MediaQuery.viewInsetsOf(sheetContext).bottom + 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Filter by expiration',
+                      style: Theme.of(sheetContext).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Choose a preset or custom date range.'),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('Next 7 days'),
+                          selected: selected == 1,
+                          onSelected: (_) => updateSheet(() => selected = 1),
+                        ),
+                        ChoiceChip(
+                          label: const Text('Next 30 days'),
+                          selected: selected == 4,
+                          onSelected: (_) => updateSheet(() => selected = 4),
+                        ),
+                        ChoiceChip(
+                          label: const Text('Custom range'),
+                          selected: selected == 3,
+                          onSelected: (_) => updateSheet(() => selected = 3),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => pickDate(true),
+                            icon: const Icon(Icons.calendar_today_outlined),
+                            label: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('FROM'),
+                                Text(dateLabel(start)),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => pickDate(false),
+                            icon: const Icon(Icons.calendar_today_outlined),
+                            label: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('TO'),
+                                Text(dateLabel(end)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (selected == 3 &&
+                        start != null &&
+                        end != null &&
+                        start!.isAfter(end!))
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Text(
+                          'Start date must be on or before end date.',
+                        ),
+                      ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: invalidRange
+                            ? null
+                            : () {
+                                setState(() {
+                                  expiryFilter = selected;
+                                  if (selected == 3) {
+                                    customStartDate = start;
+                                    customEndDate = end;
+                                  }
+                                });
+                                Navigator.pop(sheetContext);
+                              },
+                        child: const Text('Apply filters'),
+                      ),
+                    ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(sheetContext),
+                        child: const Text('Dismiss'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final filteredProducts = widget.products.where((product) {
@@ -209,10 +370,18 @@ class _InventoryScreenState extends State<InventoryScreen> {
         searchText.toLowerCase(),
       );
 
+      final days = _daysUntilExpiry(product.expirationDate);
+      final expiryDate = DateUtils.dateOnly(product.expirationDate);
       final matchesExpiry =
           expiryFilter == 0 ||
-              (expiryFilter == 1 && _isExpiringSoon(product)) ||
-              (expiryFilter == 2 && _isExpired(product));
+          (expiryFilter == 1 && days >= 0 && days <= 7) ||
+          (expiryFilter == 2 && days < 0) ||
+          (expiryFilter == 4 && days >= 0 && days <= 30) ||
+          (expiryFilter == 3 &&
+              customStartDate != null &&
+              customEndDate != null &&
+              !expiryDate.isBefore(customStartDate!) &&
+              !expiryDate.isAfter(customEndDate!));
 
       return matchesSearch && matchesExpiry;
     }).toList();
@@ -222,160 +391,176 @@ class _InventoryScreenState extends State<InventoryScreen> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Manage products and shelf life'),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Manage products and shelf life'),
 
-            const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-            Align(
-              alignment: Alignment.centerRight,
-              child: ElevatedButton.icon(
-                onPressed: () => _openProductForm(),
-                icon: const Icon(Icons.add),
-                label: const Text('Add'),
-              ),
-            ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _openProductForm(),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add'),
+                    ),
+                  ),
 
-            const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-            TextField(
-              decoration: const InputDecoration(
-                hintText: 'Search products',
-                prefixIcon: Icon(Icons.search),
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  searchText = value;
-                });
-              },
-            ),
+                  TextField(
+                    decoration: const InputDecoration(
+                      hintText: 'Search products',
+                      prefixIcon: Icon(Icons.search),
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        searchText = value;
+                      });
+                    },
+                  ),
 
-            const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-            Wrap(
-              spacing: 8,
-              children: [
-                ChoiceChip(
-                  label: const Text('All'),
-                  selected: expiryFilter == 0,
-                  onSelected: (_) {
-                    setState(() {
-                      expiryFilter = 0;
-                    });
-                  },
-                ),
-                ChoiceChip(
-                  label: const Text('Next 7 days'),
-                  selected: expiryFilter == 1,
-                  onSelected: (_) {
-                    setState(() {
-                      expiryFilter = 1;
-                    });
-                  },
-                ),
-                ChoiceChip(
-                  label: const Text('Expired'),
-                  selected: expiryFilter == 2,
-                  onSelected: (_) {
-                    setState(() {
-                      expiryFilter = 2;
-                    });
-                  },
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 16),
-
-            Text('${filteredProducts.length} products'),
-
-            const SizedBox(height: 12),
-
-            Expanded(
-              child: filteredProducts.isEmpty
-                  ? const Center(child: Text('No products found'))
-                  : ListView.builder(
-                itemCount: filteredProducts.length,
-                itemBuilder: (context, index) {
-                  final product = filteredProducts[index];
-
-                  return Card(
-                    child: ListTile(
-                      onTap: () {
-                        _showProductDetails(product);
-                      },
-                      leading: const Icon(
-                        Icons.inventory_2_outlined,
-                      ),
-                      title: Text(product.name),
-                      subtitle: Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${product.category} · '
-                                '${product.stockQuantity} units · '
-                                '${product.sellingPrice.toStringAsFixed(2)} TL',
-                          ),
-                          const SizedBox(height: 5),
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Container(
-                                  padding:
-                                  const EdgeInsets.symmetric(
-                                    horizontal: 9,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _isExpired(product)
-                                        ? Colors.red.shade50
-                                        : _isExpiringSoon(product)
-                                        ? Colors.orange.shade50
-                                        : Colors.green.shade50,
-                                    borderRadius:
-                                    BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    _isExpired(product)
-                                        ? 'Expired'
-                                        : _isExpiringSoon(product)
-                                        ? 'Expiring Soon (${_daysUntilExpiry(product.expirationDate)} days)'
-                                        : 'Fresh (${_daysUntilExpiry(product.expirationDate)} days)',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: _isExpired(product)
-                                          ? Colors.red.shade800
-                                          : _isExpiringSoon(product)
-                                          ? Colors.orange.shade900
-                                          : Colors.green.shade800,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () {
-                          _deleteProduct(product);
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('All'),
+                        selected: expiryFilter == 0,
+                        onSelected: (_) {
+                          setState(() {
+                            expiryFilter = 0;
+                          });
                         },
                       ),
-                    ),
-                  );
-                },
+                      ChoiceChip(
+                        label: const Text('Next 7 days'),
+                        selected: expiryFilter == 1,
+                        onSelected: (_) {
+                          setState(() {
+                            expiryFilter = 1;
+                          });
+                        },
+                      ),
+                      ChoiceChip(
+                        label: const Text('Expired'),
+                        selected: expiryFilter == 2,
+                        onSelected: (_) {
+                          setState(() {
+                            expiryFilter = 2;
+                          });
+                        },
+                      ),
+                      ChoiceChip(
+                        label: const Text('Next 30 days'),
+                        selected: expiryFilter == 4,
+                        onSelected: (_) {
+                          setState(() {
+                            expiryFilter = 4;
+                          });
+                        },
+                      ),
+                      ActionChip(
+                        avatar: const Icon(Icons.filter_list, size: 18),
+                        label: Text(
+                          expiryFilter == 3 ? 'Custom dates' : 'Filters',
+                        ),
+                        onPressed: _showExpiryFilters,
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  Text('${filteredProducts.length} products'),
+
+                  const SizedBox(height: 12),
+
+                  Expanded(
+                    child: filteredProducts.isEmpty
+                        ? const Center(child: Text('No products found'))
+                        : ListView.builder(
+                            itemCount: filteredProducts.length,
+                            itemBuilder: (context, index) {
+                              final product = filteredProducts[index];
+
+                              return Card(
+                                child: ListTile(
+                                  onTap: () {
+                                    _showProductDetails(product);
+                                  },
+                                  leading: const Icon(
+                                    Icons.inventory_2_outlined,
+                                  ),
+                                  title: Text(product.name),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '${product.category} · '
+                                        '${product.stockQuantity} units · '
+                                        '${product.sellingPrice.toStringAsFixed(2)} TL',
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Row(
+                                        children: [
+                                          Flexible(
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 9,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: _isExpired(product)
+                                                    ? Colors.red.shade50
+                                                    : _isExpiringSoon(product)
+                                                    ? Colors.orange.shade50
+                                                    : Colors.green.shade50,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                              ),
+                                              child: Text(
+                                                _isExpired(product)
+                                                    ? 'Expired'
+                                                    : _isExpiringSoon(product)
+                                                    ? 'Expiring Soon (${_daysUntilExpiry(product.expirationDate)} days)'
+                                                    : 'Fresh (${_daysUntilExpiry(product.expirationDate)} days)',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: _isExpired(product)
+                                                      ? Colors.red.shade800
+                                                      : _isExpiringSoon(product)
+                                                      ? Colors.orange.shade900
+                                                      : Colors.green.shade800,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  trailing: IconButton(
+                                    icon: const Icon(Icons.close),
+                                    onPressed: () {
+                                      _deleteProduct(product);
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -458,7 +643,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
     if (name.isEmpty) return;
 
     final existingCategories = widget.categories.where(
-          (category) => category.toLowerCase() == name.toLowerCase(),
+      (category) => category.toLowerCase() == name.toLowerCase(),
     );
 
     final categoryName = existingCategories.isNotEmpty
@@ -517,7 +702,7 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
 
     final product = Product(
       id:
-      widget.product?.id ??
+          widget.product?.id ??
           DateTime.now().microsecondsSinceEpoch.toString(),
       name: nameController.text.trim(),
       category: selectedCategory!,
@@ -650,8 +835,8 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
                   title: const Text('Expiration Date'),
                   subtitle: Text(
                     '${selectedDate.day}/'
-                        '${selectedDate.month}/'
-                        '${selectedDate.year}',
+                    '${selectedDate.month}/'
+                    '${selectedDate.year}',
                   ),
                   trailing: const Icon(Icons.calendar_today),
                   onTap: _selectDate,
@@ -662,11 +847,11 @@ class _ProductFormDialogState extends State<_ProductFormDialog> {
                   decoration: const InputDecoration(labelText: 'Season'),
                   items: ['All Year', 'Spring', 'Summer', 'Autumn', 'Winter']
                       .map((season) {
-                    return DropdownMenuItem<String>(
-                      value: season,
-                      child: Text(season),
-                    );
-                  })
+                        return DropdownMenuItem<String>(
+                          value: season,
+                          child: Text(season),
+                        );
+                      })
                       .toList(),
                   onChanged: (value) {
                     if (value != null) {

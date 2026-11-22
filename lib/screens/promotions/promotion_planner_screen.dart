@@ -7,8 +7,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'create_promotion_screen.dart';
 
-import 'package:wholemarket/theme/app_colors.dart';
-
 class PromotionPlannerScreen extends StatefulWidget {
   final List<Product> products;
   final bool initialShowActiveOnly;
@@ -144,7 +142,7 @@ class _PromotionPlannerScreenState extends State<PromotionPlannerScreen> {
             ),
             Text(
               '${_monthName(displayedMonth.month)} '
-                  '${displayedMonth.year}',
+              '${displayedMonth.year}',
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
             ),
             IconButton(
@@ -164,7 +162,7 @@ class _PromotionPlannerScreenState extends State<PromotionPlannerScreen> {
                   child: Text(
                     day,
                     style: TextStyle(
-                      color: AppColors.secondaryText,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 12,
                     ),
                   ),
@@ -196,8 +194,8 @@ class _PromotionPlannerScreenState extends State<PromotionPlannerScreen> {
                 final today = DateTime.now();
                 final isToday =
                     date.year == today.year &&
-                        date.month == today.month &&
-                        date.day == today.day;
+                    date.month == today.month &&
+                    date.day == today.day;
 
                 final hasPromotion = promotions.any((promotion) {
                   final start = promotion['startDate'] as DateTime;
@@ -212,9 +210,9 @@ class _PromotionPlannerScreenState extends State<PromotionPlannerScreen> {
                     margin: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
                       color: hasPromotion
-                          ? AppColors.primary
+                          ? Theme.of(context).colorScheme.primary
                           : isToday
-                          ? AppColors.accent
+                          ? Theme.of(context).colorScheme.primaryContainer
                           : Colors.transparent,
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -226,10 +224,10 @@ class _PromotionPlannerScreenState extends State<PromotionPlannerScreen> {
                             ? FontWeight.bold
                             : FontWeight.normal,
                         color: hasPromotion
-                            ? Colors.white
+                            ? Theme.of(context).colorScheme.onPrimary
                             : isToday
-                            ? AppColors.primary
-                            : AppColors.text,
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                   ),
@@ -248,7 +246,7 @@ class _PromotionPlannerScreenState extends State<PromotionPlannerScreen> {
         ? promotions.where(_isActive).toList()
         : promotions;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -294,13 +292,16 @@ class _PromotionPlannerScreenState extends State<PromotionPlannerScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          showActiveOnly ? 'Active offers' : 'Scheduled promotions',
+                          showActiveOnly
+                              ? 'Active offers'
+                              : 'Scheduled promotions',
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                       ),
                       if (showActiveOnly)
                         TextButton(
-                          onPressed: () => setState(() => showActiveOnly = false),
+                          onPressed: () =>
+                              setState(() => showActiveOnly = false),
                           child: const Text('Show all'),
                         ),
                     ],
@@ -311,159 +312,171 @@ class _PromotionPlannerScreenState extends State<PromotionPlannerScreen> {
                   Expanded(
                     child: visiblePromotions.isEmpty
                         ? Center(
-                      child: Text(
-                        showActiveOnly
-                            ? 'No active promotions today.'
-                            : 'No promotions scheduled yet.\nCreate your first promotion!',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.secondaryText),
-                      ),
-                    )
-                        : ListView.builder(
-                      itemCount: visiblePromotions.length,
-                      itemBuilder: (context, index) {
-                        final promotion = visiblePromotions[index];
-
-                        return Card(
-                          child: ListTile(
-                            title: Text(
-                              promotion['name'] as String,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
+                            child: Text(
+                              showActiveOnly ? 'No active promotions today.' : 'No promotions scheduled yet.\nCreate your first promotion!',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                             ),
-                            subtitle: Text(promotion['dates'] as String),
+                          )
+                        : ListView.builder(
+                            itemCount: visiblePromotions.length,
+                            itemBuilder: (context, index) {
+                              final promotion = visiblePromotions[index];
 
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.accent,
-                                    borderRadius: BorderRadius.circular(
-                                      8,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    '${(promotion['discount'] as double).toStringAsFixed(0)}% OFF',
+                              return Card(
+                                child: ListTile(
+                                  title: Text(
+                                    promotion['name'] as String,
                                     style: const TextStyle(
-                                      color: AppColors.primary,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                ),
+                                  subtitle: Text(promotion['dates'] as String),
 
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.edit_outlined,
-                                    color: AppColors.primary,
-                                  ),
-                                  tooltip: 'Edit promotion',
-                                  onPressed: () async {
-                                    final updatedPromotion =
-                                    await Navigator.push<
-                                        Map<String, dynamic>
-                                    >(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            CreatePromotionScreen(
-                                              products:
-                                              widget.products,
-                                              existingPromotion:
-                                              promotion,
-                                              existingPromotions:
-                                              promotions,
-                                            ),
-                                      ),
-                                    );
-
-                                    if (!context.mounted) return;
-
-                                    if (updatedPromotion != null) {
-                                      setState(() {
-                                        promotions[promotions.indexOf(promotion)] =
-                                            updatedPromotion;
-                                      });
-                                      await _savePromotions();
-                                      if (!context.mounted) return;
-
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        const SnackBar(
-                                          content: Text(
-                                            'Promotion updated successfully!',
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primaryContainer,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
                                           ),
                                         ),
-                                      );
-                                    }
-                                  },
-                                ),
-
-                                IconButton(
-                                  icon: const Icon(
-                                    Icons.delete_outline,
-                                    color: AppColors.error,
-                                  ),
-                                  tooltip: 'Delete promotion',
-                                  onPressed: () async {
-                                    final shouldDelete =
-                                    await showDialog<bool>(
-                                      context: context,
-                                      builder: (dialogContext) =>
-                                          AlertDialog(
-                                            title: const Text(
-                                              'Delete promotion?',
-                                            ),
-                                            content: const Text(
-                                              'Are you sure you want to delete this promotion?',
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(
-                                                      dialogContext,
-                                                      false,
-                                                    ),
-                                                child: const Text(
-                                                  'Cancel',
-                                                ),
-                                              ),
-                                              TextButton(
-                                                onPressed: () =>
-                                                    Navigator.pop(
-                                                      dialogContext,
-                                                      true,
-                                                    ),
-                                                child: const Text(
-                                                  'Delete',
-                                                ),
-                                              ),
-                                            ],
+                                        child: Text(
+                                          '${(promotion['discount'] as double).toStringAsFixed(0)}% OFF',
+                                          style: TextStyle(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary,
+                                            fontWeight: FontWeight.bold,
                                           ),
-                                    );
+                                        ),
+                                      ),
 
-                                    if (!mounted) return;
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.edit_outlined,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                        ),
+                                        tooltip: 'Edit promotion',
+                                        onPressed: () async {
+                                          final updatedPromotion =
+                                              await Navigator.push<
+                                                Map<String, dynamic>
+                                              >(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      CreatePromotionScreen(
+                                                        products:
+                                                            widget.products,
+                                                        existingPromotion:
+                                                            promotion,
+                                                        existingPromotions:
+                                                            promotions,
+                                                      ),
+                                                ),
+                                              );
 
-                                    if (shouldDelete == true) {
-                                      setState(() {
-                                        promotions.remove(promotion);
-                                      });
+                                          if (!context.mounted) return;
 
-                                      await _savePromotions();
-                                    }
-                                  },
+                                          if (updatedPromotion != null) {
+                                            setState(() {
+                                              promotions[promotions.indexOf(
+                                                    promotion,
+                                                  )] =
+                                                  updatedPromotion;
+                                            });
+                                            await _savePromotions();
+                                            if (!context.mounted) return;
+
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      'Promotion updated successfully!',
+                                                    ),
+                                                  ),
+                                                );
+                                          }
+                                        },
+                                      ),
+
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.delete_outline,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .error,
+                                        ),
+                                        tooltip: 'Delete promotion',
+                                        onPressed: () async {
+                                          final shouldDelete =
+                                              await showDialog<bool>(
+                                                context: context,
+                                                builder: (dialogContext) =>
+                                                    AlertDialog(
+                                                      title: const Text(
+                                                        'Delete promotion?',
+                                                      ),
+                                                      content: const Text(
+                                                        'Are you sure you want to delete this promotion?',
+                                                      ),
+                                                      actions: [
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                dialogContext,
+                                                                false,
+                                                              ),
+                                                          child: const Text(
+                                                            'Cancel',
+                                                          ),
+                                                        ),
+                                                        TextButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                dialogContext,
+                                                                true,
+                                                              ),
+                                                          child: const Text(
+                                                            'Delete',
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                              );
+
+                                          if (!mounted) return;
+
+                                          if (shouldDelete == true) {
+                                            setState(() {
+                                              promotions.remove(promotion);
+                                            });
+
+                                            await _savePromotions();
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
                   ),
 
                   const SizedBox(height: 12),
@@ -471,15 +484,15 @@ class _PromotionPlannerScreenState extends State<PromotionPlannerScreen> {
                   ElevatedButton.icon(
                     onPressed: () async {
                       final promotion =
-                      await Navigator.push<Map<String, dynamic>>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => CreatePromotionScreen(
-                            products: widget.products,
-                            existingPromotions: promotions,
-                          ),
-                        ),
-                      );
+                          await Navigator.push<Map<String, dynamic>>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CreatePromotionScreen(
+                                products: widget.products,
+                                existingPromotions: promotions,
+                              ),
+                            ),
+                          );
 
                       if (!context.mounted) return;
 

@@ -7,8 +7,6 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:wholemarket/theme/app_colors.dart';
-
 class CompetitorComparisonScreen extends StatefulWidget {
   final List<Product> products;
 
@@ -79,7 +77,7 @@ class _CompetitorComparisonScreenState
     final products = widget.products;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -128,7 +126,9 @@ class _CompetitorComparisonScreenState
                       Expanded(
                         child: Chip(
                           label: const Text('Compare prices'),
-                          backgroundColor: AppColors.accent,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .primaryContainer,
                           side: BorderSide.none,
                         ),
                       ),
@@ -147,129 +147,139 @@ class _CompetitorComparisonScreenState
                   // Scrollable competitor observations
                   Expanded(
                     child: observations.isEmpty
-                        ? const Center(
-                      child: Text(
-                        'No competitor prices yet.\n'
-                            'Add your first observation!',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.secondaryText),
-                      ),
-                    )
-                        : ListView.builder(
-                      itemCount: observations.length,
-                      itemBuilder: (context, index) {
-                        final observation = observations[index];
-
-                        final product = products.firstWhere(
-                              (item) => item.id == observation['productId'],
-                        );
-
-                        final competitorPrice =
-                        observation['price'] as double;
-
-                        final difference =
-                            product.sellingPrice - competitorPrice;
-
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    product.name,
-                                    style: const TextStyle(
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 6),
-
-                                  Text(
-                                    observation['store'] as String,
-                                    style: const TextStyle(
-                                      color: AppColors.secondaryText,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 18),
-
-                                  Row(
-                                    mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text('Your price'),
-                                      Text(
-                                        '${product.sellingPrice.toStringAsFixed(2)} TL',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-
-                                  const SizedBox(height: 12),
-
-                                  Row(
-                                    mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text('Competitor price'),
-                                      Text(
-                                        '${competitorPrice.toStringAsFixed(2)} TL',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-
-                                  const SizedBox(height: 12),
-
-                                  const Divider(),
-
-                                  const SizedBox(height: 8),
-
-                                  Text(
-                                    difference > 0
-                                        ? 'Your price is ${difference.toStringAsFixed(2)} TL higher.'
-                                        : difference < 0
-                                        ? 'Your price is ${difference.abs().toStringAsFixed(2)} TL lower.'
-                                        : 'Both prices are equal.',
-                                    style: const TextStyle(fontSize: 13),
-                                  ),
-
-                                  const SizedBox(height: 8),
-
-                                  Text(
-                                    'Observed on ${_formatDate(observation['date'] as DateTime)}',
-                                    style: const TextStyle(
-                                      color: AppColors.secondaryText,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ],
+                        ? Center(
+                            child: Text(
+                              'No competitor prices yet.\n'
+                              'Add your first observation!',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                               ),
                             ),
+                          )
+                        : ListView.builder(
+                            itemCount: observations.length,
+                            itemBuilder: (context, index) {
+                              final observation = observations[index];
+
+                              final product = products.firstWhere(
+                                (item) => item.id == observation['productId'],
+                              );
+
+                              final competitorPrice =
+                                  observation['price'] as double;
+
+                              final difference =
+                                  product.sellingPrice - competitorPrice;
+
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 14),
+                                child: Card(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          product.name,
+                                          style: const TextStyle(
+                                            fontSize: 17,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+
+                                        const SizedBox(height: 6),
+
+                                        Text(
+                                          observation['store'] as String,
+                                          style: TextStyle(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+
+                                        const SizedBox(height: 18),
+
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            const Text('Your price'),
+                                            Text(
+                                              '${product.sellingPrice.toStringAsFixed(2)} TL',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        const SizedBox(height: 12),
+
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            const Text('Competitor price'),
+                                            Text(
+                                              '${competitorPrice.toStringAsFixed(2)} TL',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                        const SizedBox(height: 12),
+
+                                        const Divider(),
+
+                                        const SizedBox(height: 8),
+
+                                        Text(
+                                          difference > 0
+                                              ? 'Your price is ${difference.toStringAsFixed(2)} TL higher.'
+                                              : difference < 0
+                                              ? 'Your price is ${difference.abs().toStringAsFixed(2)} TL lower.'
+                                              : 'Both prices are equal.',
+                                          style: const TextStyle(fontSize: 13),
+                                        ),
+
+                                        const SizedBox(height: 8),
+
+                                        Text(
+                                          'Observed on ${_formatDate(observation['date'] as DateTime)}',
+                                          style: TextStyle(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
                   ),
 
                   const SizedBox(height: 10),
 
-                  const Text(
+                  Text(
                     'Values are manually entered and dated.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: AppColors.secondaryText,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       fontSize: 12,
                     ),
                   ),
@@ -279,14 +289,14 @@ class _CompetitorComparisonScreenState
                   ElevatedButton.icon(
                     onPressed: () async {
                       final observation =
-                      await Navigator.push<Map<String, dynamic>>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => AddCompetitorPriceScreen(
-                            products: widget.products,
-                          ),
-                        ),
-                      );
+                          await Navigator.push<Map<String, dynamic>>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AddCompetitorPriceScreen(
+                                products: widget.products,
+                              ),
+                            ),
+                          );
 
                       if (!context.mounted) return;
 
