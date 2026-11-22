@@ -28,20 +28,17 @@ class DiscountService {
   // Discount based on product season
 
   static double seasonalDiscount(String peakSeason, String currentSeason) {
-    // Products sold throughout the year
-    // do not receive seasonal discounts.
-    if (peakSeason == 'All year') {
+    final normalizedPeakSeason = peakSeason.trim().toLowerCase();
+    final normalizedCurrentSeason = currentSeason.trim().toLowerCase();
+
+    if (normalizedPeakSeason == 'all year') {
       return 0;
     }
 
-    // Products in their peak season
-    // do not need a seasonal discount.
-    if (peakSeason == currentSeason) {
+    if (normalizedPeakSeason == normalizedCurrentSeason) {
       return 0;
     }
 
-    // Products outside their peak season
-    // receive a suggested 10% discount.
     return 10;
   }
 

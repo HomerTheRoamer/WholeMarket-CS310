@@ -1,8 +1,6 @@
 import 'package:wholemarket/models/product.dart';
 import 'package:flutter/material.dart';
 
-import 'package:wholemarket/theme/app_colors.dart';
-
 class AddCompetitorPriceScreen extends StatefulWidget {
   final List<Product> products;
 
@@ -95,7 +93,7 @@ class _AddCompetitorPriceScreenState extends State<AddCompetitorPriceScreen> {
     final products = widget.products;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(title: const Text('Add price observation')),
       body: SafeArea(
         child: Center(
@@ -179,7 +177,7 @@ class _AddCompetitorPriceScreenState extends State<AddCompetitorPriceScreen> {
                     ),
                     decoration: const InputDecoration(
                       hintText: 'e.g. 47.50',
-                      prefixText: '₺ ',
+                      prefixText: 'â‚º ',
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {

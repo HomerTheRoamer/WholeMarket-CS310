@@ -1,8 +1,6 @@
 import 'package:wholemarket/models/product.dart';
 import 'package:flutter/material.dart';
 
-import 'package:wholemarket/theme/app_colors.dart';
-
 class CreatePromotionScreen extends StatefulWidget {
   final List<Product> products;
   final Map<String, dynamic>? existingPromotion;
@@ -148,7 +146,7 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
               'Promotion cannot end after ${product.name} expires '
               '(${_formatDate(expiration)}).',
             ),
-            backgroundColor: AppColors.error,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
         return;
@@ -163,7 +161,7 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
               '(${discountedPrice.toStringAsFixed(2)} TL) is below cost '
               '(${product.unitCost.toStringAsFixed(2)} TL).',
             ),
-            backgroundColor: AppColors.error,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
         return;
@@ -196,11 +194,11 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
 
     if (hasOverlap) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
+        SnackBar(
+          content: const Text(
             'A selected product already has a promotion during these dates.',
           ),
-          backgroundColor: AppColors.error,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
       return;
@@ -244,7 +242,7 @@ class _CreatePromotionScreenState extends State<CreatePromotionScreen> {
     final products = widget.products;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           widget.existingPromotion == null

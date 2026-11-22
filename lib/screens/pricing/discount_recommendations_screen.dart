@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'competitor_comparison_screen.dart';
 
 import 'package:wholemarket/screens/promotions/promotion_planner_screen.dart';
-import 'package:wholemarket/theme/app_colors.dart';
+
 import 'package:wholemarket/models/product.dart';
 import 'package:wholemarket/services/discount_service.dart';
 
@@ -14,7 +14,7 @@ class DiscountRecommendationsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -42,7 +42,9 @@ class DiscountRecommendationsScreen extends StatelessWidget {
                       Expanded(
                         child: Chip(
                           label: const Text('Recommendations'),
-                          backgroundColor: AppColors.accent,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .primaryContainer,
                           side: BorderSide.none,
                         ),
                       ),
@@ -86,7 +88,7 @@ class DiscountRecommendationsScreen extends StatelessWidget {
 
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 14),
-                          child: _buildProductCard(product),
+                          child: _buildProductCard(context, product),
                         );
                       },
                     ),
@@ -116,7 +118,7 @@ class DiscountRecommendationsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProductCard(Product product) {
+  Widget _buildProductCard(BuildContext context, Product product) {
     final daysLeft = product.daysUntilExpiration;
 
     final expiryDiscount = DiscountService.expirationDiscount(daysLeft);
@@ -177,8 +179,8 @@ class DiscountRecommendationsScreen extends StatelessWidget {
 
             Text(
               product.category,
-              style: const TextStyle(
-                color: AppColors.secondaryText,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontSize: 12,
               ),
             ),
@@ -189,13 +191,13 @@ class DiscountRecommendationsScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: AppColors.warning,
+                color: Theme.of(context).colorScheme.tertiaryContainer,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
                 product.isExpired ? 'Expired' : '$daysLeft days left',
-                style: const TextStyle(
-                  color: AppColors.warningText,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onTertiaryContainer,
                   fontSize: 12,
                 ),
               ),
@@ -215,8 +217,8 @@ class DiscountRecommendationsScreen extends StatelessWidget {
                       : '${discount.toStringAsFixed(0)}%',
                   style: TextStyle(
                     color: product.isExpired
-                        ? AppColors.error
-                        : AppColors.primary,
+                        ? Theme.of(context).colorScheme.error
+                        : Theme.of(context).colorScheme.primary,
                     fontSize: product.isExpired ? 14 : 22,
                     fontWeight: FontWeight.bold,
                   ),
@@ -245,9 +247,9 @@ class DiscountRecommendationsScreen extends StatelessWidget {
 
                   Text(
                     '${discountedPrice.toStringAsFixed(2)} TL',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                 ],
@@ -272,10 +274,10 @@ class DiscountRecommendationsScreen extends StatelessWidget {
             if (!product.isExpired && discount > 0 && !isAboveCost) ...[
               const SizedBox(height: 10),
 
-              const Text(
+              Text(
                 'Warning: Suggested price is below unit cost.',
                 style: TextStyle(
-                  color: AppColors.error,
+                  color: Theme.of(context).colorScheme.error,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
