@@ -16,6 +16,7 @@ class DashboardScreen extends StatefulWidget {
   final VoidCallback onActiveOffers;
   final VoidCallback onPriceGaps;
   final VoidCallback onSuggestions;
+  final VoidCallback? onProfile;
 
   const DashboardScreen({
     super.key,
@@ -25,6 +26,7 @@ class DashboardScreen extends StatefulWidget {
     required this.onActiveOffers,
     required this.onPriceGaps,
     required this.onSuggestions,
+    this.onProfile,
   });
 
   @override
@@ -290,11 +292,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         TextButton.icon(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Profile screen is coming soon')),
-            );
-          },
+          onPressed: widget.onProfile,
           icon: const Icon(Icons.settings_outlined),
           label: const Text('Profile'),
           style: TextButton.styleFrom(foregroundColor: primaryColor),
