@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../models/product.dart';
-import '../../theme/app_colors.dart';
 import '../pricing/discount_recommendations_screen.dart';
 
 /// Screen 07: detail of the selected product.
@@ -85,6 +84,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _infoRow(String title, String value) {
+    final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 13),
       child: Row(
@@ -92,13 +92,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(color: AppColors.secondaryText, fontSize: 14),
+              style: TextStyle(color: colors.onSurfaceVariant, fontSize: 14),
             ),
           ),
           Text(
             value,
-            style: const TextStyle(
-              color: AppColors.text,
+            style: TextStyle(
+              color: colors.onSurface,
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
@@ -110,16 +110,29 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final expired = _product.isExpired;
     final warning = _product.isExpiringSoon || expired;
+
+    final statusBackground = expired
+        ? colors.errorContainer
+        : warning
+            ? colors.tertiaryContainer
+            : colors.primaryContainer;
+    final statusForeground = expired
+        ? colors.onErrorContainer
+        : warning
+            ? colors.onTertiaryContainer
+            : colors.onPrimaryContainer;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Product details',
-          style: TextStyle(color: AppColors.text, fontWeight: FontWeight.bold),
+          style: TextStyle(color: colors.onSurface, fontWeight: FontWeight.bold),
         ),
       ),
       body: SafeArea(
@@ -134,23 +147,23 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   Container(
                     height: 175,
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      border: Border.all(color: AppColors.border),
+                      color: colors.surfaceContainerHighest,
+                      border: Border.all(color: colors.outlineVariant),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     alignment: Alignment.center,
-                    child: const Text(
+                    child: Text(
                       'PRODUCT IMAGE',
-                      style: TextStyle(color: AppColors.secondaryText),
+                      style: TextStyle(color: colors.onSurfaceVariant),
                     ),
                   ),
                   const SizedBox(height: 30),
                   Text(
                     _product.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.text,
+                      color: colors.onSurface,
                     ),
                   ),
                   const SizedBox(height: 13),
@@ -159,7 +172,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 19, vertical: 10),
                       decoration: BoxDecoration(
-                        color: warning ? AppColors.warning : AppColors.accent,
+                        color: statusBackground,
                         borderRadius: BorderRadius.circular(24),
                       ),
                       child: Text(
@@ -167,7 +180,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: warning ? AppColors.warningText : AppColors.primary,
+                          color: statusForeground,
                         ),
                       ),
                     ),
@@ -187,8 +200,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     child: ElevatedButton(
                       onPressed: _busy ? null : _showAdvice,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
+                        backgroundColor: colors.primary,
+                        foregroundColor: colors.onPrimary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -207,7 +220,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         onPressed: _busy ? null : _edit,
                         child: const Text('Edit'),
                       ),
-                      const Text('·', style: TextStyle(color: AppColors.primary)),
+                      Text('·', style: TextStyle(color: colors.primary)),
                       TextButton(
                         onPressed: _busy ? null : _remove,
                         child: const Text('Remove product'),

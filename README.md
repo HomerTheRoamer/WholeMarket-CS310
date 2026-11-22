@@ -22,7 +22,7 @@ Optional Features
 -Smart restocking
 -Notifications
 
-Planned Technologies
+Technologies Used
 
 -Flutter & Dart
 -SQLite (local database)
@@ -33,3 +33,51 @@ Group Members
 -Can Aksoy
 -Zeynep Yağmur Demir
 -Yasin Berkay Narin
+
+
+## Requirements and Setup
+
+### Flutter Version
+
+- Flutter: 3.50.1
+- Dart: 3.14.0
+
+These versions were verified using GitHub Actions.
+
+### Development Environment
+
+- Flutter SDK
+- Android Studio with an Android emulator, or Xcode with an iOS simulator on macOS
+- Tested on a Pixel 9 Android emulator running Android 17 (API 37)
+
+### How to Run
+
+1. Clone the repository:
+
+   `git clone https://github.com/HomerTheRoamer/WholeMarket-CS310.git`
+
+2. Navigate to the project directory:
+
+   `cd WholeMarket-CS310`
+
+3. Install dependencies:
+
+   `flutter pub get`
+
+4. Start an Android emulator or iOS simulator.
+
+5. Check available devices:
+
+   `flutter devices`
+
+6. Run the application:
+
+   `flutter run`
+
+### Step 2.2 Implementation Notes
+
+- Authentication screens are UI-only demonstrations.
+- Real user accounts and email verification are not implemented in this step.
+- Products are stored locally using SQLite.
+- Selected demo preferences, competitor observations, and promotions use SharedPreferences.
+- Firebase Authentication and user-specific data management are planned for Step 3.
